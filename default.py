@@ -1,5 +1,5 @@
 # Import required libraries
-import urllib,urllib3,re,sys,xbmcplugin,xbmcgui,xbmcaddon,xbmc,os,requests,string
+import urllib,urllib3,re,sys,xbmcplugin,xbmcgui,xbmcaddon,xbmc,xbmcvfs,os,requests,string
 
 def OPEN_URL(url):
     req = urllib.request.Request(url)
@@ -310,9 +310,9 @@ updateScreen=False
 cacheList=False
 
 ADDON = xbmcaddon.Addon(id='plugin.video.ytlite')
-db_dir = os.path.join(xbmc.translatePath("special://database"), 'YTLite.db')
+db_dir = os.path.join(xbmcvfs.translatePath("special://database"), 'YTLite.db')
 
-datapath = xbmc.translatePath(ADDON.getAddonInfo('profile'))
+datapath = xbmcvfs.translatePath(ADDON.getAddonInfo('profile'))
 newfont=ADDON.getSetting('newfont').lower()
 
 if os.path.exists(datapath)==False:
