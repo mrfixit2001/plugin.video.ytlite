@@ -1,5 +1,5 @@
 YouTube LITE
-Version 1.0.1
+Version 1.0.2
 Notes by MRFIXIT2001
 
 The full YouTube Kodi Addon is awesome but over complicates what I want to do. So I created this slimmed down version to search and save youtube videos. You still need the full addon installed in order to use this, but you don't need to setup anything in the full addon in order for this to work.
