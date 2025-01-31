@@ -1,5 +1,5 @@
 # Import required libraries
-import urllib,urllib3,re,sys,xbmcplugin,xbmcgui,xbmcaddon,xbmc,xbmcvfs,os,requests,string
+import urllib,urllib.parse,urllib.request,re,sys,xbmcplugin,xbmcgui,xbmcaddon,xbmc,xbmcvfs,os,string
 
 def OPEN_URL(url):
     req = urllib.request.Request(url)
@@ -19,7 +19,7 @@ def OPEN_URL(url):
 
     response.close()
     return link
-	
+
 
 # MAIN MENU
 def MAINMENU():
@@ -36,7 +36,7 @@ def FAVORITES(switch,name,iconimage,url):
     iconimage=iconimage.replace(' ','%20')
 
     IMAGE = os.path.join(ADDON.getAddonInfo('path'), 'icon.png')
-   
+
     db = database.connect( db_dir );cur = db.cursor()
     if switch == 'add':
         sql = "INSERT OR REPLACE INTO favourites (track_name,iconimage,url) VALUES(?,?,?)"
@@ -177,7 +177,7 @@ def SEARCH(search_entered):
             keyboard.doModal()
             if keyboard.isConfirmed() and len(keyboard.getText())>0:
                search_entered = keyboard.getText()
-            else: 
+            else:
                # User cancelled search
                updateScreen=True
 
@@ -263,7 +263,7 @@ def addLink(name,url,iconimage,fanart,showcontext=True):
                   menu.append(('[COLOR green]Add[/COLOR] to YouTube LITE Favorites','RunPlugin(%s?mode=2&iconimage=%s&url=%s&name=%s&switch=%s)' %(sys.argv[0],iconimage,url,name,'add')))
           else:
               menu.append(('[COLOR red]Remove[/COLOR] from YouTube LITE Favorites','RunPlugin(%s?mode=2&iconimage=%s&url=%s&name=%s&switch=%s)' %(sys.argv[0],iconimage,url,name,'delete')))
-						  
+
     liz.addContextMenuItems(items=menu, replaceItems=False)
     xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=u,listitem=liz,isFolder=False)
 
@@ -278,7 +278,7 @@ def PlayYouTube(name,url,iconimage):
     liz.setInfo(type='Video', infoLabels={'Title':name})
     liz.setProperty("IsPlayable","true")
 
-    ytAddon = ADDON.getSetting('youtube_player').lower()    
+    ytAddon = ADDON.getSetting('youtube_player').lower()
     if ytAddon == "youtube addon":
         youtube='plugin://plugin.video.youtube/play/?video_id=%s'% url
         liz.setPath(str(youtube))
@@ -286,7 +286,7 @@ def PlayYouTube(name,url,iconimage):
         from youtubedl import YDStreamExtractor
         vid = YDStreamExtractor.getVideoInfo(url)
         liz.setPath(vid.streamURL())
-    
+
     xbmcplugin.setResolvedUrl(int(sys.argv[1]), True, liz)
 
 
@@ -314,7 +314,7 @@ def get_params():
                         splitparams=pairsofparams[i].split('=')
                         if (len(splitparams))==2:
                                 param[splitparams[0]]=splitparams[1]
-                                
+
         return param
 
 
@@ -332,7 +332,7 @@ datapath = xbmcvfs.translatePath(ADDON.getAddonInfo('profile'))
 newfont=ADDON.getSetting('newfont').lower()
 
 if os.path.exists(datapath)==False:
-    os.mkdir(datapath) 
+    os.mkdir(datapath)
 
 art= "%s/Art/"%ADDON.getAddonInfo("path")
 from sqlite3 import dbapi2 as database
@@ -365,19 +365,19 @@ try:
         switch=urllib.parse.unquote_plus(params["switch"])
 except:
         switch='display'
-try:        
+try:
         mode=int(params["mode"])
 except:
         pass
-try:        
+try:
         fanart=urllib.parse.unquote_plus(params["fanart"])
 except:
         pass
-try:        
+try:
         number=int(params["number"])
 except:
         pass
-try:        
+try:
         split=int(params["split"])
 except:
         pass
