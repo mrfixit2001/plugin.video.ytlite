@@ -1,6 +1,12 @@
 # Import required libraries
 import urllib,urllib.parse,urllib.request,re,sys,xbmcplugin,xbmcgui,xbmcaddon,xbmc,xbmcvfs,os,string
 
+kodi_version = xbmc.getInfoLabel('System.BuildVersion')
+try:
+    kodi_version = int(kodi_version.split(".")[0])
+except (ValueError, IndexError):
+    kodi_version = 0  # Default to 0 if something goes wrong
+
 def OPEN_URL(url):
     req = urllib.request.Request(url)
     req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.66 Safari/537.36')
@@ -125,47 +131,65 @@ def PlayListHandler(url):
 
 
 def HtmlToResults(html):
-        link=html.split('watch?v=')
+    link = html.split('watch?v=')
 
-        # NOTE: the current element in the loop contains the title for the NEXT element
-        for i, p in enumerate(link):
-            nextLink = link[(i+1) % len(link)]
-            p=p.replace('\\"',"")
+    if len(link) < 2:
+        print("Error: No valid video links found in the provided HTML.")
+        return
 
-            # Get the title from this element
-            name = ""
-            if ',"title":{"simpleText":"' in p:
-                name = p.split(',"title":{"simpleText":"')[1]
-            if ',"title":{"runs":[{"text":"' in p:
-                name = p.split(',"title":{"runs":[{"text":"')[1]
-            name = name.split('"')[0]
-            name = str(name).replace("&#39;","'").replace("&amp;","and").replace("&#252;","u").replace("&quot;","").replace("[","").replace("]","").replace("-"," ")
+    for i, p in enumerate(link):
+        if i + 1 >= len(link):
+            break  # Prevents out-of-bounds access
 
-            # Everything else from the next element
-            if ':"buy or rent"' in nextLink.lower():
+        nextLink = link[i + 1]  # Safe access
+        p = p.replace('\\"', "")
+
+        # Get the title from this element
+        name = ""
+        if ',"title":{"simpleText":"' in p:
+            parts = p.split(',"title":{"simpleText":"')
+            if len(parts) > 1:
+                name = parts[1].split('"')[0]
+
+        elif ',"title":{"runs":[{"text":"' in p:
+            parts = p.split(',"title":{"runs":[{"text":"')
+            if len(parts) > 1:
+                name = parts[1].split('"')[0]
+
+        name = str(name).replace("&#39;", "'").replace("&amp;", "and").replace(
+            "&#252;", "u").replace("&quot;", "").replace("[", "").replace("]", "").replace("-", " ")
+
+        # Everything else from the next element
+        if ':"buy or rent"' in nextLink.lower():
+            continue
+
+        # Validate `nextLink` before accessing it
+        if '"' not in nextLink:
+            print("Warning: Malformed nextLink, skipping")
+            continue
+
+        url = nextLink.split('"')[0]
+        print("URL:" + url)
+
+        if '&amp' in url:
+            url = url.split('&amp')[0]
+        if '\\u0026' in url:
+            url = url.split('\\u0026')[0]
+
+        iconimage = ""
+        if "\\u0026list=" in url:
+            iconimage = "DefaultFolder.png"
+            addDir(name, url, 99, 'DefaultFolder.png', 'none', 1)
+        else:
+            if not url.strip():
+                print("Warning: Skipping empty URL")
                 continue
 
-            url=nextLink.split('"')[0]
-            print("URL:" + url)
-            iconimage=""
-            if "\\u0026list=" in url:
-                # Playlist
-                iconimage="DefaultFolder.png"
-                addDir(name,url,99,'DefaultFolder.png','none',1)
-            else:
-              if '&amp' in url:
-                  url = url.split('&amp')[0]
-              if '\\u0026' in url:
-                  url = url.split('\\u0026')[0]
-              if iconimage=="":
-                 iconimage = 'http://i.ytimg.com/vi/%s/0.jpg' % url
+            if iconimage == "":
+                iconimage = f'http://i.ytimg.com/vi/{url}/0.jpg'
 
-              #xbmc.log(msg="DEBUG: " + name + ": " + iconimage, level=xbmc.LOGINFO)
-
-              if not 'video_id' in name:
-                 if not '_title_' in name:
-                    if not 'video search' in name.lower():
-                        addLink(name,url,iconimage,'')
+            if 'video_id' not in name and '_title_' not in name and 'video search' not in name.lower():
+                addLink(name, url, iconimage, '')
 
 
 def SEARCH(search_entered):
@@ -218,7 +242,13 @@ def addDir(name,url,mode,iconimage,fanart,number):
         liz.setArt({'icon':'DefaultFolder.png'})
         liz.setArt({'thumb':iconimage})
         liz.setArt({'fanart':fanart})
-        liz.setInfo( type="Video", infoLabels={ "Title": name } )
+
+        if kodi_version < 20:
+            liz.setInfo( type="Video", infoLabels={ "Title": name } )
+        else:
+            tags = liz.getVideoInfoTag()
+            tags.setTitle(name)
+
         menu=[]
         if (mode == 3 or mode==16) and url!='url' :
             menu.append(('[COLOR orange]Remove Search[/COLOR]','Container.Update(%s?mode=5002&name=%s&url=url)'% (sys.argv[0],name)))
@@ -243,7 +273,13 @@ def addLink(name,url,iconimage,fanart,showcontext=True):
     liz.setArt({'icon':'DefaultVideo.png'})
     liz.setArt({'thumb':iconimage})
     liz.setArt({'fanart':fanart})
-    liz.setInfo( type="Video", infoLabels={ "Title": name } )
+
+    if kodi_version < 20:
+        liz.setInfo( type="Video", infoLabels={ "Title": name } )
+    else:
+        tags = liz.getVideoInfoTag()
+        tags.setTitle(name)
+
     liz.setProperty("IsPlayable","true")
     menu = []
     if showcontext:
@@ -267,7 +303,6 @@ def addLink(name,url,iconimage,fanart,showcontext=True):
     liz.addContextMenuItems(items=menu, replaceItems=False)
     xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=u,listitem=liz,isFolder=False)
 
-
 def PlayYouTube(name,url,iconimage):
     url = 'https://www.youtube.com/watch?v=%s'% url
     print("YouTube Lite Playing: " + url)
@@ -275,19 +310,36 @@ def PlayYouTube(name,url,iconimage):
     liz = xbmcgui.ListItem(name, offscreen=True)
     liz.setArt({'icon':'DefaultVideo.png'})
     liz.setArt({'thumb':iconimage})
-    liz.setInfo(type='Video', infoLabels={'Title':name})
-    liz.setProperty("IsPlayable","true")
+
+    if kodi_version < 20:
+        liz.setInfo(type='Video', infoLabels={'Title':name})
+    else:
+        tags = liz.getVideoInfoTag()
+        tags.setTitle(name)
 
     ytAddon = ADDON.getSetting('youtube_player').lower()
     if ytAddon == "youtube addon":
         youtube='plugin://plugin.video.youtube/play/?video_id=%s'% url
         liz.setPath(str(youtube))
     else:
-        from youtubedl import YDStreamExtractor
-        vid = YDStreamExtractor.getVideoInfo(url)
-        liz.setPath(vid.streamURL())
+        import yt_dlp as youtube_dl
+        streamURL = ""
+        try:
+            with youtube_dl.YoutubeDL({'format':'best', 'ignore_no_formats_error':'true'}) as ydl:
+                info = ydl.extract_info(url, download=False)
+                if 'url' in info:
+                    streamURL = info['url']
+        except Exception as e:
+            print("DEBUG: YoutubeDL ERROR:", str(e))
+
+        if streamURL == "":
+            xbmc.executebuiltin('Notification('+name+',Failed to Play,2000,' + os.path.join(ADDON.getAddonInfo('path'), 'icon.png') + ')')
+        else:
+            liz.setProperty("IsPlayable","true")
+            liz.setPath(streamURL)
 
     xbmcplugin.setResolvedUrl(int(sys.argv[1]), True, liz)
+
 
 
 def setView(viewType):
